@@ -4,6 +4,22 @@ A Python command-line prototype for general health education using Mistral chat 
 
 **Status:** Standalone implementation and offline tests added. Live API smoke testing of this updated implementation is pending. Historical notebook outputs are not proof that the new implementation works against the current service.
 
+## Model identity and migration
+
+| Implementation | Model | Method |
+|---|---|---|
+| Original preserved General Health notebook | `open-mistral-7b` | Prompt engineering via Mistral API |
+| Updated runnable General Health CLI | `mistral-small-latest` by default | Prompt engineering via Mistral API |
+| Separate Mental Health Support project | `EleutherAI/gpt-neo-1.3B` | LoRA fine-tuning; not part of this repository |
+
+The original General Health project did not use GPT-Neo or fine-tuning. The
+updated CLI changes the API model; it is not an exact reproduction of the
+original model's outputs. Mistral lists `open-mistral-7b` as retired in its
+[official model documentation](https://docs.mistral.ai/models/mistral-7b-0-3).
+The original notebook remains unchanged for provenance. The CLI and live test
+share `health_bot.DEFAULT_MODEL`, print the selected model, and allow an explicit
+`MISTRAL_MODEL` override. No automatic fallback silently changes models.
+
 ## Original notebook audit
 
 The original `General_Health_Query_Chatbot_(Prompt_Engineering_Based).ipynb` is preserved unchanged, including historical outputs. It uses Colab Secrets, `open-mistral-7b`, temperature 0.2, and a 300-token answer limit.
@@ -65,7 +81,7 @@ Offline tests mock the provider. They cover follow-up context, history bounds/re
 2. Open **Actions → Live health chatbot smoke test → Run workflow** on `main` after these files are merged.
 3. Check the three PASS/FAIL lines: general question, follow-up topic, and a diagnosis/dosing boundary heuristic.
 
-The live workflow is manual only. It makes three real API requests and may consume credits. Raw model answers are not printed by the script. The refusal check can reject valid paraphrases or miss problematic wording; even three passes are not a medical safety benchmark. The updated implementation has not yet completed this live test.
+The live workflow is manual only. It makes three real API requests and may consume credits. Raw model answers are not printed by the script. The refusal check can reject valid paraphrases or miss problematic wording; even three passes are not a medical safety benchmark. The latest inspected live run ([38794845706](https://github.com/syblejan/General-Health-Query-Chatbot-Prompt-Engineering-Based-/actions/runs/38794845706), attempt 2) passed all 12 offline tests but stopped because `MISTRAL_API_KEY` was empty. It did not reach a live model call; this was not an invalid-key rejection. Live verification remains pending.
 
 ## Architecture
 

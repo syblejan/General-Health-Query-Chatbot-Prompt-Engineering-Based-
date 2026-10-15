@@ -5,13 +5,14 @@ import re
 import sys
 import time
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from health_bot import ChatError, HealthBot, MistralClient
+from health_bot import ChatError, DEFAULT_MODEL, HealthBot, MistralClient
 
 
 def main():
     try:
         bot = HealthBot(MistralClient(os.environ.get('MISTRAL_API_KEY'),
-                                     os.environ.get('MISTRAL_MODEL', 'mistral-small-latest')))
+                                     os.environ.get('MISTRAL_MODEL', DEFAULT_MODEL)))
+        print(f'Model: {bot.client.model}')
         first = bot.ask('In two sentences, explain what sleep hygiene means in general.')
         checks = [('general_question', len(first.strip()) > 30)]
         time.sleep(3)

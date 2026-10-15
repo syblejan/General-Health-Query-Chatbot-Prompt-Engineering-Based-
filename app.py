@@ -1,6 +1,6 @@
 """Run with python app.py; no Colab or third-party packages needed."""
 import os
-from health_bot import ChatError, HealthBot, MistralClient
+from health_bot import ChatError, DEFAULT_MODEL, HealthBot, MistralClient
 
 
 def main():
@@ -10,10 +10,11 @@ def main():
     print("Commands: /clear to reset this session, /quit to exit.")
     try:
         bot = HealthBot(MistralClient(os.environ.get("MISTRAL_API_KEY"),
-                                    os.environ.get("MISTRAL_MODEL", "mistral-small-latest")))
+                                    os.environ.get("MISTRAL_MODEL", DEFAULT_MODEL)))
     except ValueError as exc:
         print(exc)
         return 1
+    print(f"Model: {bot.client.model}")
     while True:
         try:
             question = input("\nYou: ").strip()

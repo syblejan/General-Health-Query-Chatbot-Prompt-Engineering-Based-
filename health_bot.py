@@ -2,6 +2,8 @@
 import http.client
 import json
 
+DEFAULT_MODEL = "mistral-small-latest"
+
 SYSTEM_PROMPT = """You provide general health education in clear, empathetic language.
 You are an AI, not a licensed healthcare professional. Do not diagnose the user,
 prescribe medication, give individualized doses, or provide definitive treatment plans.
@@ -21,7 +23,7 @@ class ChatError(RuntimeError):
 
 
 class MistralClient:
-    def __init__(self, api_key, model="mistral-small-latest"):
+    def __init__(self, api_key, model=DEFAULT_MODEL):
         if not isinstance(api_key, str) or not api_key.strip():
             raise ValueError("Set MISTRAL_API_KEY before starting.")
         if not isinstance(model, str) or not model.strip():
