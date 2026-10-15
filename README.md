@@ -1,107 +1,90 @@
-# 🏥 General Health Query Chatbot (Prompt Engineering Based)
+# General Health Query Chatbot — Prompt Engineering
 
-> A prompt-engineered AI health assistant powered by Mistral 7B that answers general medical queries with empathy, clarity, and built-in safety guardrails.
+A Python command-line prototype for general health education using Mistral chat completions. Demonstrates system-prompt design, bounded conversation history, credential handling, and testable API integration. No model training, fine-tuning, retrieval, or clinical validation is included.
 
----
+**Status:** Standalone implementation and offline tests added. Live API smoke testing of this updated implementation is pending. Historical notebook outputs are not proof that the new implementation works against the current service.
 
-## 📌 Task Objective
+## Original notebook audit
 
-The goal of this task was to build a general-purpose health query chatbot using **prompt engineering** — without any model training or fine-tuning. By carefully crafting a system prompt with explicit behavioral rules, the chatbot is guided to respond like a knowledgeable and empathetic medical assistant while strictly avoiding dangerous behaviors such as diagnosing conditions or prescribing treatments.
+The original `General_Health_Query_Chatbot_(Prompt_Engineering_Based).ipynb` is preserved unchanged, including historical outputs. It uses Colab Secrets, `open-mistral-7b`, temperature 0.2, and a 300-token answer limit.
 
-This project demonstrates how effective prompt design alone can shape an LLM's persona, tone, and safety boundaries.
+The audit found:
 
----
+- Every original request contains only the system prompt and current question. An interactive loop does not provide conversational memory.
+- Saved outputs visibly end mid-answer. A required disclaimer can be omitted when output is truncated.
+- Saved responses include medication dosing despite the intended no-prescribing boundary. Those outputs do not demonstrate reliable safety compliance.
+- The notebook does not contain a controlled temperature comparison or a labeled evaluation supporting claims that low temperature guarantees factual consistency.
 
-## 🤖 Model Applied
+The README's earlier claims of universally safe answers, demonstrated memory, and comparative temperature results have therefore been removed. No medical accuracy percentage is claimed.
 
-**Model:** [`open-mistral-7b`](https://mistral.ai/news/announcing-mistral-7b/)  
-**Provider:** Mistral AI API  
-**Access:** Via the `mistralai` Python client library
+## Updated implementation
 
-Mistral 7B is a high-performance open-weight language model that delivers strong instruction-following capabilities at an efficient size, making it well-suited for real-time conversational applications.
+- `app.py`: local interactive CLI with `/clear` and `/quit` commands.
+- `health_bot.py`: system prompt, last six complete conversation turns, and Mistral HTTPS client.
+- API key read from `MISTRAL_API_KEY`; model configurable through `MISTRAL_MODEL` (default `mistral-small-latest`).
+- Standard-library HTTP integration; no third-party installation or Colab dependency for the CLI.
+- A 60-second request timeout, bounded question length, and errors that omit provider bodies and credentials.
+- Failed requests do not enter conversation history. Output-limit completion reasons produce an explicit incomplete-answer notice.
+- A 600-token output limit reduces the original output constraint but can still truncate answers.
 
-### Inference Configuration
+The prompt asks for general education, uncertainty, professional referral, no diagnosis or individualized medication doses, and priority guidance for potential emergencies. These instructions are not an enforcement layer and can fail. Lower temperature does not establish factual correctness.
 
-| Parameter     | Value |
-|---------------|-------|
-| Temperature   | 0.2   |
-| Max Tokens    | 300   |
-| Mode          | Chat Completion (`chat.complete`) |
+## Run locally
 
-A **low temperature (0.2)** was intentionally chosen to produce factual, consistent, and reliable health information rather than creative or unpredictable responses.
+Requires Python 3.10+ and a Mistral API account with access to the configured model.
 
----
-
-## 🧠 Prompt Engineering Approach
-
-The chatbot's behavior is entirely defined through a structured **system prompt** — no fine-tuning required. The prompt establishes:
-
-1. **Persona** — A friendly, empathetic, and knowledgeable medical assistant
-2. **Objective** — Answer general health queries clearly and simply
-3. **Safety Rules (Critical Guardrails):**
-   - Never diagnose conditions or prescribe medications
-   - Always remind the user to consult a licensed healthcare professional
-   - Escalate to emergency services if severe symptoms are mentioned
-
-```
-You are a friendly, empathetic, and highly knowledgeable medical assistant.
-Your objective is to answer general health queries clearly and simply.
-
-CRITICAL SAFETY RULES:
-1. You are an AI, not a licensed doctor. NEVER diagnose or prescribe.
-2. Always include a disclaimer to consult a healthcare professional.
-3. For emergencies (severe pain, breathing issues), direct to emergency care.
+```bash
+git clone https://github.com/syblejan/General-Health-Query-Chatbot-Prompt-Engineering-Based-.git
+cd General-Health-Query-Chatbot-Prompt-Engineering-Based-
+python app.py
 ```
 
-This pattern — combining a clear role definition with explicit behavioral constraints — is a core technique in responsible prompt engineering for healthcare applications.
+Set `MISTRAL_API_KEY` in your environment before running. For a Windows PowerShell session, enter it using a hidden prompt:
 
----
+```powershell
+$secureKey = Read-Host "Mistral API key" -AsSecureString
+$env:MISTRAL_API_KEY = [System.Net.NetworkCredential]::new('', $secureKey).Password
+python app.py
+Remove-Item Env:MISTRAL_API_KEY
+```
 
-## 💬 Sample Interactions
+The key remains in the process environment during use; do not commit it. A `.env` file is ignored by Git but is not automatically loaded by this app. To choose another account-supported model, set `MISTRAL_MODEL` before launch. Availability, pricing, and quotas depend on the provider and account.
 
-**Query 1: Informational**
-> 🗣️ *"What causes a sore throat?"*  
-> 🤖 The bot responded with a well-structured breakdown covering viral causes (cold, flu, COVID-19), bacterial causes (strep throat), environmental irritants, acid reflux, and overuse of the voice.
+## Tests and evidence
 
-**Query 2: Treatment Advice**
-> 🗣️ *"How do I treat a sore throat?"*  
-> 🤖 The bot provided safe home remedies (warm liquids, honey, saltwater gargling, humidifier use) while clearly advising the user to seek medical care if symptoms persisted or worsened.
+```bash
+python -m compileall -q app.py health_bot.py scripts tests
+python -m unittest discover -s tests -v
+```
 
-**Query 3: Medication Safety**
-> 🗣️ *"Is paracetamol safe for children?"*  
-> 🤖 The bot explained weight-based dosing guidelines, measurement tips, and precautions around combination products — all with a gentle disclaimer to consult a pediatrician.
+Offline tests mock the provider. They cover follow-up context, history bounds/reset, failed-request handling, input validation, request construction, safe errors, invalid responses, timeouts, and truncation notices. They do not verify model medical knowledge or real API connectivity. GitHub Actions runs them on pushes and pull requests.
 
----
+### Optional live API test
 
-## 🔑 Key Results & Findings
+1. In **this repository**, open **Settings → Secrets and variables → Actions** and add `MISTRAL_API_KEY` as a repository secret. A secret added to another repository is not automatically shared here.
+2. Open **Actions → Live health chatbot smoke test → Run workflow** on `main` after these files are merged.
+3. Check the three PASS/FAIL lines: general question, follow-up topic, and a diagnosis/dosing boundary heuristic.
 
-- **Prompt engineering alone** was sufficient to produce safe, structured, and helpful health responses — no model training was needed.
-- The **low temperature setting** was critical for factual consistency; higher values produced less reliable medical information.
-- The **system prompt guardrails** successfully prevented the model from making diagnostic claims or prescribing specific treatments across all tested queries.
-- The chatbot correctly handled multi-turn conversation flow, including follow-up questions, within the interactive loop.
-- **Emergency escalation behavior** was built in through prompt rules, demonstrating that safety-critical behaviors can be embedded via instructions rather than RLHF alone.
+The live workflow is manual only. It makes three real API requests and may consume credits. Raw model answers are not printed by the script. The refusal check can reject valid paraphrases or miss problematic wording; even three passes are not a medical safety benchmark. The updated implementation has not yet completed this live test.
 
-### Limitations
-- Responses are capped at 300 tokens, which occasionally truncates longer explanations mid-sentence.
-- The model has no memory between sessions — each call is stateless.
-- As a general-purpose LLM, the model is not clinically validated and should not replace professional medical advice.
+## Architecture
 
----
+User question → input validation → system prompt + bounded session history → Mistral HTTPS chat completion → response validation → CLI output + successful-turn history.
 
-## 🛠️ Tech Stack
+The Mistral API, rather than local training, generates answers. This project has no Streamlit/browser UI.
 
-| Tool / Library  | Purpose                              |
-|-----------------|--------------------------------------|
-| `mistralai`     | Mistral API client for chat completions |
-| `google.colab`  | Secure API key management via Secrets |
-| Python          | Core scripting language              |
-| Google Colab    | Development & execution environment  |
+## Limitations and intended use
 
+Educational portfolio prototype, not a diagnostic, prescribing, or emergency-triage service. It can produce inaccurate or harmful information and miss urgent situations. It has no verified medical knowledge base, source citations, clinical evaluation, or reliable prompt-injection protection.
 
-## ⚠️ Disclaimer
+Questions and recent conversation are transmitted to Mistral. Session history is in memory; the application does not intentionally persist it to disk. Provider retention is separate. Avoid identifiable personal health information. There is no authentication, automatic retry, streaming, or persistent session storage.
 
-This chatbot is for **informational and educational purposes only**. It is not a substitute for professional medical advice, diagnosis, or treatment. Always consult a qualified healthcare provider for medical concerns.
+## API reference
 
----
+[Mistral chat completion documentation](https://docs.mistral.ai/api/endpoint/chat) describes the `/v1/chat/completions` request and model/message parameters. The original notebook retains its original SDK approach; the standalone CLI uses the documented HTTPS endpoint.
 
-*Built as part of an AI/ML Internship Program.*
+## Author
+
+**Syble Jan** — BS Computer Science, aspiring AI/ML Engineer.
+
+Originally developed as part of an AI/ML internship program.
